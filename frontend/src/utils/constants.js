@@ -1,0 +1,15 @@
+export const POPULAR_SHOWS = [
+  'Breaking Bad',
+  'Game of Thrones',
+  'Stranger Things',
+  'Friends',
+  'The Office',
+  'The Sopranos',
+  'The Wire',
+  'Lost',
+  'Sherlock',
+  'Dark',
+  'Dexter',
+  'Black Mirror',
+  'True Detective',
+];
