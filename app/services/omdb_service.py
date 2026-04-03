@@ -75,8 +75,11 @@ async def _fetch_episode(
             resp.raise_for_status()
             body = resp.json()
             if body.get("Response") == "False":
+                error_msg = body.get("Error", "")
+                if "Invalid API key" in error_msg:
+                    raise ValueError(f"OMDb API key is invalid. Please check your OMDB_API_KEY in .env")
                 logger.debug("OMDb returned Response=False for %s S%02dE%02d: %s",
-                             show, season, episode, body.get("Error"))
+                             show, season, episode, error_msg)
                 return None
             return body
         except (httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException) as exc:
@@ -104,9 +107,14 @@ async def _get_season_episode_count(client: httpx.AsyncClient, show: str, season
         resp.raise_for_status()
         body = resp.json()
         if body.get("Response") == "False":
+            error_msg = body.get("Error", "")
+            if "Invalid API key" in error_msg:
+                raise ValueError(f"OMDb API key is invalid. Please check your OMDB_API_KEY in .env")
             return 0
         episodes_list = body.get("Episodes", [])
         return len(episodes_list)
+    except ValueError:
+        raise
     except Exception:
         logger.exception("Failed to get season episode count for %s S%d", show, season)
         return 0
@@ -124,8 +132,13 @@ async def _get_total_seasons(client: httpx.AsyncClient, show: str) -> int:
         resp.raise_for_status()
         body = resp.json()
         if body.get("Response") == "False":
+            error_msg = body.get("Error", "")
+            if "Invalid API key" in error_msg:
+                raise ValueError(f"OMDb API key is invalid. Please check your OMDB_API_KEY in .env")
             return 0
         return int(body.get("totalSeasons", 0))
+    except ValueError:
+        raise
     except Exception:
         logger.exception("Failed to get total seasons for %s", show)
         return 0

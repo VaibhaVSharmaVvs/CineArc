@@ -1,0 +1,40 @@
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual Environments ─────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Environment / Secrets ────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── IDE / Editor ─────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Testing ──────────────────────────────────────────────
+test_results.txt
+test_quick.py
+.pytest_cache/
+htmlcov/
+.coverage
+
+# ── Misc ─────────────────────────────────────────────────
+*.log
+HISTORY.md
