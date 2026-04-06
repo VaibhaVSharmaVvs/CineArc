@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useGame } from "@/context/GameContext";
+import { searchShows, SearchResult } from "@/api/gameApi";
 import { Search, Play, Loader2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 
@@ -11,20 +12,87 @@ const POPULAR_SHOWS = [
 const GameSetup: React.FC = () => {
   const { state, setShow, setMode, setPoolType, setSeason, setCluesEnabled, startGame, clearError } = useGame();
   const [searchValue, setSearchValue] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipSearchRef = useRef(false);
+
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    // Skip if we just selected a result
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
+
+    if (!searchValue.trim() || searchValue.length < 2) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const data = await searchShows(searchValue);
+        // Deduplicate by title (keep first occurrence)
+        const seen = new Set<string>();
+        const unique = data.filter((r) => {
+          if (seen.has(r.title)) return false;
+          seen.add(r.title);
+          return true;
+        });
+        setResults(unique);
+        setShowDropdown(unique.length > 0);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchValue]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const handleChipClick = (show: string) => {
+    skipSearchRef.current = true;
     setShow(show);
     setSearchValue(show);
+    setShowDropdown(false);
+    setResults([]);
+  };
+
+  const handleSelectResult = (result: SearchResult) => {
+    skipSearchRef.current = true;
+    setShow(result.title);
+    setSearchValue(result.title);
+    setShowDropdown(false);
+    setResults([]);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-4">
       <div className="max-w-md w-full space-y-8 slide-up">
         {/* Brand */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-2">
-            <img src={logo} alt="CineArc" className="w-16 h-16" />
-          </div>
+        <div className="text-center space-y-1">
+          <img src={logo} alt="CineArc" className="w-36 h-36 mx-auto" />
           <h1 className="text-4xl font-bold tracking-tight glow-text">CineArc</h1>
           <p className="text-muted-foreground text-base leading-relaxed max-w-xs mx-auto">
             Test your knowledge of TV episode ratings. Higher or lower?
@@ -46,7 +114,7 @@ const GameSetup: React.FC = () => {
 
         {/* Search */}
         <div className="game-card space-y-5" style={{ animationDelay: "0.1s" }}>
-          <div>
+          <div ref={dropdownRef}>
             <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">
               TV Show
             </label>
@@ -55,10 +123,48 @@ const GameSetup: React.FC = () => {
               <input
                 type="text"
                 value={searchValue}
-                onChange={(e) => { setSearchValue(e.target.value); setShow(e.target.value); }}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setShow(e.target.value);
+                }}
+                onFocus={() => {
+                  if (results.length > 0) setShowDropdown(true);
+                }}
                 placeholder="Search for a TV show..."
                 className="game-input pl-10"
               />
+              {searching && (
+                <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+              )}
+
+              {/* Dropdown */}
+              {showDropdown && results.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 mt-1.5 rounded-xl bg-card border border-border/50 shadow-xl overflow-hidden fade-in">
+                  {results.map((result) => (
+                    <button
+                      key={result.imdb_id}
+                      onClick={() => handleSelectResult(result)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/60 transition-colors duration-150 border-b border-border/30 last:border-b-0"
+                    >
+                      {result.poster && result.poster !== "N/A" ? (
+                        <img
+                          src={result.poster}
+                          alt={result.title}
+                          className="w-8 h-12 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{result.title}</p>
+                        <p className="text-xs text-muted-foreground">{result.year}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

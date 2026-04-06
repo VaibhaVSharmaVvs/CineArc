@@ -80,3 +80,18 @@ export async function getGameState(gameId: string) {
   if (!res.ok) throw new Error(data.detail || 'Failed to get game state');
   return data;
 }
+
+export interface SearchResult {
+  title: string;
+  year: string;
+  poster: string;
+  imdb_id: string;
+}
+
+export async function searchShows(query: string): Promise<SearchResult[]> {
+  if (!query.trim()) return [];
+  const res = await fetch(`${BASE_URL}/search?q=${encodeURIComponent(query.trim())}`);
+  const data = await res.json();
+  if (!res.ok) return [];
+  return data.results || [];
+}
