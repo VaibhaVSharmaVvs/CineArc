@@ -12,9 +12,7 @@ const GameOver: React.FC = () => {
       <div className="max-w-sm w-full space-y-8 text-center">
         {/* Trophy */}
         <div className="fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20">
-            <img src={logo} alt="CineArc" className="w-16 h-16" />
-          </div>
+          <img src={logo} alt="CineArc" className="w-24 h-24 mx-auto" />
         </div>
 
         {/* Title */}

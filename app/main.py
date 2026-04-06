@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.game_routes import router as game_router
+from app.api.routes.search_routes import router as search_router
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -30,6 +31,7 @@ app.add_middleware(
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 app.include_router(game_router)
+app.include_router(search_router)
 
 
 @app.get("/", tags=["Health"])
