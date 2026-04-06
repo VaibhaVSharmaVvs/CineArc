@@ -17,10 +17,17 @@ const GameSetup: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipSearchRef = useRef(false);
 
   // Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    // Skip if we just selected a result
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
 
     if (!searchValue.trim() || searchValue.length < 2) {
       setResults([]);
@@ -32,8 +39,15 @@ const GameSetup: React.FC = () => {
       setSearching(true);
       try {
         const data = await searchShows(searchValue);
-        setResults(data);
-        setShowDropdown(data.length > 0);
+        // Deduplicate by title (keep first occurrence)
+        const seen = new Set<string>();
+        const unique = data.filter((r) => {
+          if (seen.has(r.title)) return false;
+          seen.add(r.title);
+          return true;
+        });
+        setResults(unique);
+        setShowDropdown(unique.length > 0);
       } catch {
         setResults([]);
       } finally {
@@ -58,12 +72,15 @@ const GameSetup: React.FC = () => {
   }, []);
 
   const handleChipClick = (show: string) => {
+    skipSearchRef.current = true;
     setShow(show);
     setSearchValue(show);
     setShowDropdown(false);
+    setResults([]);
   };
 
   const handleSelectResult = (result: SearchResult) => {
+    skipSearchRef.current = true;
     setShow(result.title);
     setSearchValue(result.title);
     setShowDropdown(false);
